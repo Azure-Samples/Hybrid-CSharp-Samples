@@ -5,7 +5,7 @@
     using System.IO;
     using System.Net;
 
-    using Profile2018ResourceManager = Microsoft.Azure.Management.Profiles.hybrid_2018_03_01.ResourceManager;
+    using ProfileResourceManager = Microsoft.Azure.Management.Profiles.hybrid_2020_09_01.ResourceManager;
     using Microsoft.Azure.Management.ResourceManager.Fluent;
     using Microsoft.Rest;
     using Microsoft.Rest.Azure.Authentication;
@@ -34,7 +34,7 @@
                 Console.WriteLine(String.Format("Creating a resource group with name:{0}", resourceGroup1Name));
                 var rm = rmClient.ResourceGroups.CreateOrUpdateWithHttpMessagesAsync(
                     resourceGroup1Name,
-                    new Profile2018ResourceManager.Models.ResourceGroup
+                    new ProfileResourceManager.Models.ResourceGroup
                     {
                         Location = location
                     }).GetAwaiter().GetResult();
@@ -48,7 +48,7 @@
             try
             {
                 Console.WriteLine(String.Format("Updating the resource group with name:{0}", resourceGroup1Name));
-                var rmTag = rmClient.ResourceGroups.PatchWithHttpMessagesAsync(resourceGroup1Name, new Profile2018ResourceManager.Models.ResourceGroup
+                var rmTag = rmClient.ResourceGroups.UpdateWithHttpMessagesAsync(resourceGroup1Name, new ProfileResourceManager.Models.ResourceGroupPatchable
                 {
                     Tags = new Dictionary<string, string> { { "DotNetTag", "DotNetValue" } }
                 }).GetAwaiter().GetResult();
@@ -64,7 +64,7 @@
                 Console.WriteLine(String.Format("Creating a resource group with name:{0}", resourceGroup2Name));
                 var rmNew = rmClient.ResourceGroups.CreateOrUpdateWithHttpMessagesAsync(
                     resourceGroup2Name,
-                    new Profile2018ResourceManager.Models.ResourceGroup
+                    new ProfileResourceManager.Models.ResourceGroup
                     {
                         Location = location
                     }).GetAwaiter().GetResult();
@@ -109,7 +109,7 @@
 
             try
             {
-                var request = (HttpWebRequest)HttpWebRequest.Create(string.Format("{0}/metadata/endpoints?api-version=1.0", armEndpoint));
+                var request = (HttpWebRequest)HttpWebRequest.Create(string.Format("{0}/metadata/endpoints?api-version=2019-10-01", armEndpoint));
                 request.Method = "GET";
                 request.UserAgent = ComponentName;
                 request.Accept = "application/xml";
@@ -119,8 +119,9 @@
                     using (StreamReader sr = new StreamReader(response.GetResponseStream()))
                     {
                         var rawResponse = sr.ReadToEnd();
-                        var deserialized = JObject.Parse(rawResponse);
-                        var authenticationObj = deserialized.GetValue("authentication").Value<JObject>();
+                        var deserializedArray = JArray.Parse(rawResponse);
+                        var deserializedObject = deserializedArray[0].Value<JObject>();
+                        var authenticationObj = deserializedObject.GetValue("authentication").Value<JObject>();
                         var loginEndpoint = authenticationObj.GetValue("loginEndpoint").Value<string>();
                         var audiencesObj = authenticationObj.GetValue("audiences").Value<JArray>();
 
@@ -139,21 +140,21 @@
 
         static void Main(string[] args)
         {
-            //Set variables
-            var location = Environment.GetEnvironmentVariable("RESOURCE_LOCATION");
-            var baseUriString = Environment.GetEnvironmentVariable("ARM_ENDPOINT");
-            var servicePrincipalId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
-            var servicePrincipalSecret = Environment.GetEnvironmentVariable("AZURE_CERT_SECRET");
-            var certificatePath = Environment.GetEnvironmentVariable("AZURE_CERT_PATH");
+            // Get variables
+            var baseUriString = Environment.GetEnvironmentVariable("AZURE_ARM_ENDPOINT");
+            var location = Environment.GetEnvironmentVariable("AZURE_LOCATION");
             var tenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID");
+            var servicePrincipalId = Environment.GetEnvironmentVariable("AZURE_SP_CERT_ID");
+            var servicePrincipalSecret = Environment.GetEnvironmentVariable("AZURE_SP_CERT_PASS");
+            var certificatePath = Environment.GetEnvironmentVariable("AZURE_SP_CERT_PATH");
             var subscriptionId = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
 
             runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, baseUriString, certificatePath);
         }
 
-        private static Profile2018ResourceManager.ResourceManagementClient GetResourceManagementClient(Uri baseUri, ServiceClientCredentials credential, string subscriptionId)
+        private static ProfileResourceManager.ResourceManagementClient GetResourceManagementClient(Uri baseUri, ServiceClientCredentials credential, string subscriptionId)
         {
-            var client = new Profile2018ResourceManager.ResourceManagementClient(baseUri: baseUri, credentials: credential)
+            var client = new ProfileResourceManager.ResourceManagementClient(baseUri: baseUri, credentials: credential)
             {
                 SubscriptionId = subscriptionId
             };
