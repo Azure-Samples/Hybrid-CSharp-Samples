@@ -130,10 +130,10 @@
             var servicePrincipalId = secretServicePrincipalSettings.GetValue("clientId").ToString();
             var servicePrincipalSecret = secretServicePrincipalSettings.GetValue("clientSecret").ToString();
             var subscriptionId = secretServicePrincipalSettings.GetValue("subscriptionId").ToString();
-            var resourceManagerUrl = secretServicePrincipalSettings.GetValue("resourceManagerUrl").ToString();
+            var resourceManagerEndpointUrl = secretServicePrincipalSettings.GetValue("resourceManagerEndpointUrl").ToString();
             var location = secretServicePrincipalSettings.GetValue("location").ToString();
 
-            runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerUrl);
+            runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl);
         }
 
         private static ProfileResourceManager.ResourceManagementClient GetResourceManagementClient(Uri baseUri, ServiceClientCredentials credential, string subscriptionId)
