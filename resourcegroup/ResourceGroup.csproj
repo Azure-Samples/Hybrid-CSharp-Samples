@@ -2,14 +2,14 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Management.Profiles.hybrid_2020_09_01.ResourceManager" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ResourceManager.Fluent" Version="1.16.0" />
-    <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.23" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.50.0" />
+    <PackageReference Include="Azure.Identity" Version="1.8.2" />
+    <PackageReference Include="Azure.ResourceManager.Resources" Version="1.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
   </ItemGroup>
 
 </Project>
