@@ -1,129 +1,110 @@
-﻿namespace ResourceGroup
+﻿using Azure.Identity;
+using Azure.ResourceManager;
+using Azure.ResourceManager.Resources;
+using Azure.ResourceManager.Resources.Models;
+using System;
+using System.Threading.Tasks;
+// using Microsoft.Rest.Azure.Authentication;
+using Newtonsoft.Json.Linq;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Collections.Generic;
+
+namespace ResourceGroup
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Net;
-
-    using ProfileResourceManager = Microsoft.Azure.Management.Profiles.hybrid_2020_09_01.ResourceManager;
-    using Microsoft.Azure.Management.ResourceManager.Fluent;
-    using Microsoft.Rest;
-    using Microsoft.Rest.Azure.Authentication;
-    using Newtonsoft.Json.Linq;
-    using Newtonsoft.Json;
-
-    class Program
+    public class Program
     {
-        private const string ComponentName = "DotnetSDKResourceManagementSample";
-
-        static void runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint)
+        // AuthorityHost is the login endpoint or the active directory authority.
+        public static Uri AuthorityHost;
+        public static string Audiences;
+        static readonly HttpClient httpClient = new HttpClient();
+        public static async Task runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint)
         {
+            await SetEnvironmentEndpoints(armEndpoint);
+            Console.WriteLine("Creating ClientSecretCredential...");
+            string[] urlSegments = AuthorityHost.AbsoluteUri.Split('/');
+            if (urlSegments[urlSegments.Length - 1] == "adfs")
+            {
+                tenantId = "adfs";
+            }
+            var credential = new ClientSecretCredential(tenantId, servicePrincipalId, servicePrincipalSecret, new TokenCredentialOptions {AuthorityHost = AuthorityHost});
+            Console.WriteLine("Creating ArmClient...");
+            var armClientOptions = new ArmClientOptions {
+                Environment = new ArmEnvironment(new Uri(armEndpoint), Audiences)
+            };
+            armClientOptions.SetApiVersion(ResourceGroupResource.ResourceType, "2019-10-01");
+            armClientOptions.SetApiVersion(ResourceProviderResource.ResourceType, "2019-10-01");
+            var armClient = new ArmClient(credential, subscriptionId, armClientOptions);
+            SubscriptionResource subscription = armClient.GetDefaultSubscription();
             var resourceGroupName = "azure-sample-csharp-resourcegroup";
+            ResourceGroupData resourceGroupData = new ResourceGroupData(location);
+            ResourceGroupCollection resourceGroups = subscription.GetResourceGroups();
+            ResourceGroupResource resourceGroup;
 
-            Console.WriteLine("Get credential token");
-            var adSettings = getActiveDirectoryServiceSettings(armEndpoint); 
-            var credentials = ApplicationTokenProvider.LoginSilentAsync(tenantId, servicePrincipalId, servicePrincipalSecret, adSettings).GetAwaiter().GetResult();
-
-            Console.WriteLine("Instantiate resource management client");
-            var rmClient = GetResourceManagementClient(new Uri(armEndpoint), credentials, subscriptionId);
-
-            // Create resource group.
             try
             {
+                // Create resource group.
                 Console.WriteLine(String.Format("Creating a resource group with name: {0}", resourceGroupName));
-                var rmCreateTask = rmClient.ResourceGroups.CreateOrUpdateWithHttpMessagesAsync(
-                    resourceGroupName,
-                    new ProfileResourceManager.Models.ResourceGroup
-                    {
-                        Location = location
-                    });
-                rmCreateTask.Wait();
+                ArmOperation<ResourceGroupResource> operation = await resourceGroups.CreateOrUpdateAsync(Azure.WaitUntil.Completed, resourceGroupName, resourceGroupData);
+                resourceGroup = operation.Value;
+
+                // Add tag to resource group.
+                var tagName = "tagName";
+                var tagValue = "tagValue";
+                resourceGroup.AddTag(tagName, tagValue);
+                var tags = new Dictionary<string, string>()
+                {
+                    {"a", "b"},
+                    {"c", "d"}
+                };
+                resourceGroup.SetTags(tags);
+                resourceGroup.RemoveTag("a");
+
+                // Can also update tags via the following code:
+                // ResourceGroupPatch resourceGroupPatch = new ResourceGroupPatch();
+                // resourceGroupPatch.Tags[tagName] = tagValue;
+                // Console.WriteLine(String.Format("Adding tags '{0}:{1}' to resource group {2}", tagName, tagValue, resourceGroupName));
+                // resourceGroup.Update(resourceGroupPatch);
+
+                // Get resource group.
+                Console.WriteLine(String.Format("Getting resource group {0}", resourceGroupName));
+                ResourceGroupResource gotResourceGroup = subscription.GetResourceGroup(resourceGroupName);
+                Console.WriteLine(String.Format("Got resource group: {0}", gotResourceGroup));
             }
             catch (Exception ex)
             {
                 Console.WriteLine(String.Format("Could not create resource group {0}. Exception: {1}", resourceGroupName, ex.Message));
             }
-
-            // Update the resource group.
-            try
+            finally
             {
-                Console.WriteLine(String.Format("Updating the resource group with name: {0}", resourceGroupName));
-                var rmTagTask = rmClient.ResourceGroups.UpdateWithHttpMessagesAsync(resourceGroupName, new ProfileResourceManager.Models.ResourceGroupPatchable
-                {
-                    Tags = new Dictionary<string, string> { { "DotNetTag", "DotNetValue" } }
-                });
-
-                rmTagTask.Wait();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(String.Format("Could not tag resource grooup {0}. Exception: {1}", resourceGroupName, ex.Message));
-            }
-
-            // Get the resource groups.
-            try
-            {
-                Console.WriteLine("Getting the created resource group.");
-                var rmListTask = rmClient.ResourceGroups.GetWithHttpMessagesAsync(resourceGroupName);
-                rmListTask.Wait();
-                var resourceGroupResults = rmListTask.Result.Body;
-                Console.WriteLine("Resource group:");
-                Console.WriteLine(JsonConvert.SerializeObject(resourceGroupResults));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(string.Format("Could not list resource groups. Exception: {0}", ex.Message));
-            }
-
-            // Delete a resource group.
-            try
-            {
-                Console.WriteLine(String.Format("Deleting resource group with name: {0}", resourceGroupName));
-                var rmDeleteTask = rmClient.ResourceGroups.DeleteWithHttpMessagesAsync(resourceGroupName);
-                rmDeleteTask.Wait();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(String.Format("Could not delete resource group {0}. Exception: {1}", resourceGroupName, ex.Message));
+                // Delete resource group.
+                resourceGroup = subscription.GetResourceGroup(resourceGroupName);
+                Console.WriteLine(String.Format("Deleting a resource group with name: {0}", resourceGroupName));
+                await resourceGroup.DeleteAsync(Azure.WaitUntil.Completed);
             }
         }
 
-        static ActiveDirectoryServiceSettings getActiveDirectoryServiceSettings(string armEndpoint)
+        static async Task SetEnvironmentEndpoints(String armEndpoint)
         {
-            var settings = new ActiveDirectoryServiceSettings();
-
             try
             {
-                var request = (HttpWebRequest)HttpWebRequest.Create(string.Format("{0}/metadata/endpoints?api-version=2019-10-01", armEndpoint));
-                request.Method = "GET";
-                request.UserAgent = ComponentName;
-                request.Accept = "application/xml";
-
-                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                {
-                    using (StreamReader sr = new StreamReader(response.GetResponseStream()))
-                    {
-                        var rawResponse = sr.ReadToEnd();
-                        var deserializedArray = JArray.Parse(rawResponse);
-                        var deserializedObject = deserializedArray[0].Value<JObject>();
-                        var authenticationObj = deserializedObject.GetValue("authentication").Value<JObject>();
-                        var loginEndpoint = authenticationObj.GetValue("loginEndpoint").Value<string>();
-                        var audiencesObj = authenticationObj.GetValue("audiences").Value<JArray>();
-
-                        settings.AuthenticationEndpoint = new Uri(loginEndpoint);
-                        settings.TokenAudience = new Uri(audiencesObj[0].Value<string>());
-                        settings.ValidateAuthority = loginEndpoint.TrimEnd('/').EndsWith("/adfs", StringComparison.OrdinalIgnoreCase) ? false : true;
-                    }
-                }
+                string responseBody = await httpClient.GetStringAsync(string.Format("{0}/metadata/endpoints?api-version=2019-10-01", armEndpoint));
+                var deserializedArray = JArray.Parse(responseBody);
+                var deserializedObject = deserializedArray[0].Value<JObject>();
+                var authenticationObj = deserializedObject.GetValue("authentication").Value<JObject>();
+                var loginEndpoint = authenticationObj.GetValue("loginEndpoint").Value<string>();
+                var audiencesObj = authenticationObj.GetValue("audiences").Value<JArray>();
+                AuthorityHost = new Uri(loginEndpoint);
+                Audiences = audiencesObj[0].Value<string>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(String.Format("Could not get AD service settings. Exception: {0}", ex.Message));
+                Console.WriteLine(String.Format("Could not get Azure Stack environment service metadata. Exception: {0}", ex.Message));
             }
-            return settings;
         }
 
-        static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             JObject secretServicePrincipalSettings = JObject.Parse(File.ReadAllText(@"..\azureSecretSpConfig.json"));
             var tenantId = secretServicePrincipalSettings.GetValue("tenantId").ToString();
@@ -133,18 +114,7 @@
             var resourceManagerEndpointUrl = secretServicePrincipalSettings.GetValue("resourceManagerEndpointUrl").ToString();
             var location = secretServicePrincipalSettings.GetValue("location").ToString();
 
-            runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl);
-        }
-
-        private static ProfileResourceManager.ResourceManagementClient GetResourceManagementClient(Uri baseUri, ServiceClientCredentials credential, string subscriptionId)
-        {
-            var client = new ProfileResourceManager.ResourceManagementClient(baseUri: baseUri, credentials: credential)
-            {
-                SubscriptionId = subscriptionId
-            };
-            client.SetUserAgent(ComponentName);
-
-            return client;
+            await runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl);
         }
     }
 }
