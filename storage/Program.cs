@@ -70,8 +70,7 @@ namespace StorageAccount
                     StorageAccountCreateOrUpdateContent parameters = new StorageAccountCreateOrUpdateContent(sku, kind, location);
                     // Get a collection of all storage accounts.
                     StorageAccountCollection accountCollection = resourceGroup.GetStorageAccounts();
-                    ArmOperation<StorageAccountResource> accountCreateOperation = await accountCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, storageAccountName, parameters);
-                    storageAccount = accountCreateOperation.Value;
+                    storageAccount = accountCollection.CreateOrUpdate(Azure.WaitUntil.Completed, storageAccountName, parameters).Value;
                 }
                 catch (Exception ex)
                 {
