@@ -20,17 +20,14 @@ namespace ResourceGroup
         {
             await SetEnvironmentEndpoints(armEndpoint);
             Console.WriteLine("Creating ClientSecretCredential...");
-            string[] urlSegments = AuthorityHost.AbsoluteUri.Split('/');
-            if (urlSegments[urlSegments.Length - 1] == "adfs")
-            {
-                tenantId = "adfs";
-            }
-            var credential = new ClientSecretCredential(tenantId, servicePrincipalId, servicePrincipalSecret, new TokenCredentialOptions {AuthorityHost = AuthorityHost});
+            var credential = new ClientSecretCredential(tenantId, servicePrincipalId, servicePrincipalSecret, new ClientSecretCredentialOptions { 
+                AuthorityHost = AuthorityHost,
+                DisableInstanceDiscovery = true 
+            });
             Console.WriteLine("Creating ArmClient...");
             var armClientOptions = new ArmClientOptions {
                 Environment = new ArmEnvironment(new Uri(armEndpoint), Audiences)
             };
-            armClientOptions.SetApiVersionsFromProfile(AzureStackProfile.Profile20200901Hybrid);
             var armClient = new ArmClient(credential, subscriptionId, armClientOptions);
             SubscriptionResource subscription = armClient.GetDefaultSubscription();
             var resourceGroupName = "azure-sample-csharp-resourcegroup";
@@ -85,9 +82,8 @@ namespace ResourceGroup
         {
             try
             {
-                string responseBody = await httpClient.GetStringAsync(string.Format("{0}/metadata/endpoints?api-version=2019-10-01", armEndpoint));
-                var deserializedArray = JArray.Parse(responseBody);
-                var deserializedObject = deserializedArray[0].Value<JObject>();
+                string responseBody = await httpClient.GetStringAsync(string.Format("{0}/metadata/endpoints?api-version=2022-09-01", armEndpoint));
+                var deserializedObject = JObject.Parse(responseBody);
                 var authenticationObj = deserializedObject.GetValue("authentication").Value<JObject>();
                 var loginEndpoint = authenticationObj.GetValue("loginEndpoint").Value<string>();
                 var audiencesObj = authenticationObj.GetValue("audiences").Value<JArray>();
