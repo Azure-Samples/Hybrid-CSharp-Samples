@@ -25,7 +25,13 @@ namespace ResourceGroup
             {
                 tenantId = "adfs";
             }
-            var credential = new ClientSecretCredential(tenantId, servicePrincipalId, servicePrincipalSecret, new TokenCredentialOptions {AuthorityHost = AuthorityHost});
+            var credential = new ClientSecretCredential(tenantId, servicePrincipalId, servicePrincipalSecret, 
+                                    new ClientSecretCredentialOptions
+                                    {
+                                        AuthorityHost = AuthorityHost,
+                                        DisableInstanceDiscovery = true
+                                    }
+                                );
             Console.WriteLine("Creating ArmClient...");
             var armClientOptions = new ArmClientOptions {
                 Environment = new ArmEnvironment(new Uri(armEndpoint), Audiences)
