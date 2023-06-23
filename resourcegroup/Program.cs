@@ -16,7 +16,7 @@ namespace ResourceGroup
         public static Uri AuthorityHost;
         public static string Audiences;
         static readonly HttpClient httpClient = new HttpClient();
-        public static async Task runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint)
+        public static async Task runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint, bool disableInstanceDiscovery = false)
         {
             await SetEnvironmentEndpoints(armEndpoint);
             Console.WriteLine("Creating ClientSecretCredential...");
@@ -29,7 +29,7 @@ namespace ResourceGroup
                                     new ClientSecretCredentialOptions
                                     {
                                         AuthorityHost = AuthorityHost,
-                                        DisableInstanceDiscovery = true
+                                        DisableInstanceDiscovery = disableInstanceDiscovery
                                     }
                                 );
             Console.WriteLine("Creating ArmClient...");
@@ -115,8 +115,9 @@ namespace ResourceGroup
             var subscriptionId = secretServicePrincipalSettings.GetValue("subscriptionId").ToString();
             var resourceManagerEndpointUrl = secretServicePrincipalSettings.GetValue("resourceManagerEndpointUrl").ToString();
             var location = secretServicePrincipalSettings.GetValue("location").ToString();
+            var disableInstanceDiscovery =  ((bool)secretServicePrincipalSettings.GetValue("disableInstanceDiscovery"));
 
-            await runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl);
+            await runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl, disableInstanceDiscovery);
         }
     }
 }
