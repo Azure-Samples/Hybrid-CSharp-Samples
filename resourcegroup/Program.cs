@@ -115,7 +115,14 @@ namespace ResourceGroup
             var subscriptionId = secretServicePrincipalSettings.GetValue("subscriptionId").ToString();
             var resourceManagerEndpointUrl = secretServicePrincipalSettings.GetValue("resourceManagerEndpointUrl").ToString();
             var location = secretServicePrincipalSettings.GetValue("location").ToString();
-            var disableInstanceDiscovery =  ((bool)secretServicePrincipalSettings.GetValue("disableInstanceDiscovery"));
+
+            JToken disableInstanceDiscoveryValue;
+            bool disableInstanceDiscovery = false;
+            bool instanceDiscoveryFlagSet =  secretServicePrincipalSettings.TryGetValue("disableInstanceDiscovery", StringComparison.InvariantCultureIgnoreCase, out disableInstanceDiscoveryValue);
+            if(instanceDiscoveryFlagSet)
+            {
+                disableInstanceDiscovery = (bool)disableInstanceDiscoveryValue;
+            }
 
             await runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl, disableInstanceDiscovery);
         }
