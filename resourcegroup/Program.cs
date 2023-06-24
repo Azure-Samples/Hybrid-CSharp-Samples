@@ -16,7 +16,7 @@ namespace ResourceGroup
         public static Uri AuthorityHost;
         public static string Audiences;
         static readonly HttpClient httpClient = new HttpClient();
-        public static async Task runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint)
+        public static async Task runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint, bool disableInstanceDiscovery = false)
         {
             await SetEnvironmentEndpoints(armEndpoint);
             Console.WriteLine("Creating ClientSecretCredential...");
@@ -29,7 +29,7 @@ namespace ResourceGroup
                                     new ClientSecretCredentialOptions
                                     {
                                         AuthorityHost = AuthorityHost,
-                                        DisableInstanceDiscovery = true
+                                        DisableInstanceDiscovery = disableInstanceDiscovery
                                     }
                                 );
             Console.WriteLine("Creating ArmClient...");
@@ -116,7 +116,15 @@ namespace ResourceGroup
             var resourceManagerEndpointUrl = secretServicePrincipalSettings.GetValue("resourceManagerEndpointUrl").ToString();
             var location = secretServicePrincipalSettings.GetValue("location").ToString();
 
-            await runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl);
+            JToken disableInstanceDiscoveryValue;
+            bool disableInstanceDiscovery = false;
+            bool instanceDiscoveryFlagSet =  secretServicePrincipalSettings.TryGetValue("disableInstanceDiscovery", StringComparison.InvariantCultureIgnoreCase, out disableInstanceDiscoveryValue);
+            if(instanceDiscoveryFlagSet)
+            {
+                disableInstanceDiscovery = (bool)disableInstanceDiscoveryValue;
+            }
+
+            await runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl, disableInstanceDiscovery);
         }
     }
 }
