@@ -10,81 +10,65 @@
     using Microsoft.Rest;
     using Microsoft.Rest.Azure.Authentication;
     using Newtonsoft.Json.Linq;
-    using System.Security.Cryptography.X509Certificates;
+    using Newtonsoft.Json;
 
     class Program
     {
         private const string ComponentName = "DotnetSDKResourceManagementSample";
 
-        static void runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint, string certPath)
+        static void runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint)
         {
-            var resourceGroup1Name = SdkContext.RandomResourceName("rgDotnetSdk", 24);
-            var resourceGroup2Name = SdkContext.RandomResourceName("rgDotnetSdk", 24);
+            var resourceGroupName = "azure-samples-hybrid-csharp-resourcegroup";
 
             Console.WriteLine("Get credential token");
-            var adSettings = getActiveDirectoryServiceSettings(armEndpoint);
-            var certificate = new X509Certificate2(certPath, servicePrincipalSecret);
-            var credentials =  ApplicationTokenProvider.LoginSilentWithCertificateAsync(tenantId, new ClientAssertionCertificate(servicePrincipalId, certificate), adSettings).GetAwaiter().GetResult(); 
+            var adSettings = getActiveDirectoryServiceSettings(armEndpoint); 
+            var credentials = ApplicationTokenProvider.LoginSilentAsync(tenantId, servicePrincipalId, servicePrincipalSecret, adSettings).GetAwaiter().GetResult();
+
             Console.WriteLine("Instantiate resource management client");
             var rmClient = GetResourceManagementClient(new Uri(armEndpoint), credentials, subscriptionId);
 
             // Create resource group.
             try
             {
-                Console.WriteLine(String.Format("Creating a resource group with name:{0}", resourceGroup1Name));
-                var rm = rmClient.ResourceGroups.CreateOrUpdateWithHttpMessagesAsync(
-                    resourceGroup1Name,
+                Console.WriteLine(String.Format("Creating a resource group with name: {0}", resourceGroupName));
+                var rmCreateTask = rmClient.ResourceGroups.CreateOrUpdateWithHttpMessagesAsync(
+                    resourceGroupName,
                     new ProfileResourceManager.Models.ResourceGroup
                     {
                         Location = location
-                    }).GetAwaiter().GetResult();
+                    });
+                rmCreateTask.Wait();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(String.Format("Could not create resource group {0}. Exception: {1}", resourceGroup1Name, ex.Message));
+                Console.WriteLine(String.Format("Could not create resource group {0}. Exception: {1}", resourceGroupName, ex.Message));
             }
 
             // Update the resource group.
             try
             {
-                Console.WriteLine(String.Format("Updating the resource group with name:{0}", resourceGroup1Name));
-                var rmTag = rmClient.ResourceGroups.UpdateWithHttpMessagesAsync(resourceGroup1Name, new ProfileResourceManager.Models.ResourceGroupPatchable
+                Console.WriteLine(String.Format("Updating the resource group with name: {0}", resourceGroupName));
+                var rmTagTask = rmClient.ResourceGroups.UpdateWithHttpMessagesAsync(resourceGroupName, new ProfileResourceManager.Models.ResourceGroupPatchable
                 {
                     Tags = new Dictionary<string, string> { { "DotNetTag", "DotNetValue" } }
-                }).GetAwaiter().GetResult();
+                });
+
+                rmTagTask.Wait();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(String.Format("Could not tag resource grooup {0}. Exception: {1}", resourceGroup1Name, ex.Message));
+                Console.WriteLine(String.Format("Could not tag resource grooup {0}. Exception: {1}", resourceGroupName, ex.Message));
             }
 
-            // Create another resource group.
+            // Get the resource groups.
             try
             {
-                Console.WriteLine(String.Format("Creating a resource group with name:{0}", resourceGroup2Name));
-                var rmNew = rmClient.ResourceGroups.CreateOrUpdateWithHttpMessagesAsync(
-                    resourceGroup2Name,
-                    new ProfileResourceManager.Models.ResourceGroup
-                    {
-                        Location = location
-                    }).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(String.Format("Could not create resource group {0}. Exception: {1}", resourceGroup2Name, ex.Message));
-            }
-
-            // List resource groups.
-            try
-            {
-                Console.WriteLine("Listing all resource groups.");
-                var rmList = rmClient.ResourceGroups.ListWithHttpMessagesAsync().GetAwaiter().GetResult();
-
-                var resourceGroupResults = rmList.Body;
-                foreach (var result in resourceGroupResults)
-                {
-                    Console.WriteLine(String.Format("Resource group name:{0}", result.Name));
-                }
+                Console.WriteLine("Getting the created resource group.");
+                var rmListTask = rmClient.ResourceGroups.GetWithHttpMessagesAsync(resourceGroupName);
+                rmListTask.Wait();
+                var resourceGroupResults = rmListTask.Result.Body;
+                Console.WriteLine("Resource group:");
+                Console.WriteLine(JsonConvert.SerializeObject(resourceGroupResults));
             }
             catch (Exception ex)
             {
@@ -94,12 +78,13 @@
             // Delete a resource group.
             try
             {
-                Console.WriteLine(String.Format("Deleting resource group with name:{0}", resourceGroup2Name));
-                var rmDelete = rmClient.ResourceGroups.DeleteWithHttpMessagesAsync(resourceGroup2Name).GetAwaiter().GetResult();
+                Console.WriteLine(String.Format("Deleting resource group with name: {0}", resourceGroupName));
+                var rmDeleteTask = rmClient.ResourceGroups.DeleteWithHttpMessagesAsync(resourceGroupName);
+                rmDeleteTask.Wait();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(String.Format("Could not delete resource group {0}. Exception: {1}", resourceGroup2Name, ex.Message));
+                Console.WriteLine(String.Format("Could not delete resource group {0}. Exception: {1}", resourceGroupName, ex.Message));
             }
         }
 
@@ -140,16 +125,15 @@
 
         static void Main(string[] args)
         {
-            // Get variables
-            var baseUriString = Environment.GetEnvironmentVariable("AZURE_ARM_ENDPOINT");
-            var location = Environment.GetEnvironmentVariable("AZURE_LOCATION");
-            var tenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID");
-            var servicePrincipalId = Environment.GetEnvironmentVariable("AZURE_SP_CERT_ID");
-            var servicePrincipalSecret = Environment.GetEnvironmentVariable("AZURE_SP_CERT_PASS");
-            var certificatePath = Environment.GetEnvironmentVariable("AZURE_SP_CERT_PATH");
-            var subscriptionId = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
+            JObject secretServicePrincipalSettings = JObject.Parse(File.ReadAllText(@"..\azureAppSpConfig.json"));
+            var tenantId = secretServicePrincipalSettings.GetValue("tenantId").ToString();
+            var servicePrincipalId = secretServicePrincipalSettings.GetValue("clientId").ToString();
+            var servicePrincipalSecret = secretServicePrincipalSettings.GetValue("clientSecret").ToString();
+            var subscriptionId = secretServicePrincipalSettings.GetValue("subscriptionId").ToString();
+            var resourceManagerUrl = secretServicePrincipalSettings.GetValue("resourceManagerUrl").ToString();
+            var location = secretServicePrincipalSettings.GetValue("location").ToString();
 
-            runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, baseUriString, certificatePath);
+            runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerUrl);
         }
 
         private static ProfileResourceManager.ResourceManagementClient GetResourceManagementClient(Uri baseUri, ServiceClientCredentials credential, string subscriptionId)
