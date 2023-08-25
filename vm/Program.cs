@@ -25,7 +25,7 @@
 
         static void runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint, string certPath)
         {
-            var resourceGroupName = "azure-samples-hybrid-csharp-vm";
+            var resourceGroupName = "azure-sample-csharp-vm";
             var vmName = SdkContext.RandomResourceName("vmDotnetSdk", 24);
             var vmNameManagedDisk = SdkContext.RandomResourceName("vmManagedDotnetSdk", 24);
             var vnetName = SdkContext.RandomResourceName("vnetDotnetSdk", 24);

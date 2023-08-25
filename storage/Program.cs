@@ -21,7 +21,7 @@
 
         static void runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint)
         {
-            var resourceGroupName = "azure-samples-hybrid-csharp-storage";
+            var resourceGroupName = "azure-sample-csharp-storage";
             var storageAccountName = SdkContext.RandomResourceName("storageaccount", 18);
             var storageAccount2Name = SdkContext.RandomResourceName("storageaccount", 18);
             Console.WriteLine("Get credential token");

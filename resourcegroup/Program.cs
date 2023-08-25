@@ -18,7 +18,7 @@
 
         static void runSample(string tenantId, string subscriptionId, string servicePrincipalId, string servicePrincipalSecret, string location, string armEndpoint)
         {
-            var resourceGroupName = "azure-samples-hybrid-csharp-resourcegroup";
+            var resourceGroupName = "azure-sample-csharp-resourcegroup";
 
             Console.WriteLine("Get credential token");
             var adSettings = getActiveDirectoryServiceSettings(armEndpoint); 
