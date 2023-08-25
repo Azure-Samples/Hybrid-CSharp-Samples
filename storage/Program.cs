@@ -242,7 +242,7 @@
 
         static void Main(string[] args)
         {
-            JObject secretServicePrincipalSettings = JObject.Parse(File.ReadAllText(@"..\azureAppSpConfig.json"));
+            JObject secretServicePrincipalSettings = JObject.Parse(File.ReadAllText(@"..\azureSecretSpConfig.json"));
             var tenantId = secretServicePrincipalSettings.GetValue("tenantId").ToString();
             var servicePrincipalId = secretServicePrincipalSettings.GetValue("clientId").ToString();
             var servicePrincipalSecret = secretServicePrincipalSettings.GetValue("clientSecret").ToString();
