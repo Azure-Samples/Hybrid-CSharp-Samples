@@ -123,7 +123,6 @@
             }
 
             // Update storage account by enabling encryption.
-            /*
             try
             {
                 Console.WriteLine(String.Format("Enabling blob encryption for the storage account: {0}", storageAccount2Name));
@@ -133,7 +132,8 @@
                         {
                             Services = new ProfileStorage.Models.EncryptionServices
                             {
-                                Blob = new ProfileStorage.Models.EncryptionService()
+                                // Currently, encryption can only be enabled and cannot be disabled.
+                                Blob = new ProfileStorage.Models.EncryptionService(true, DateTime.Now, "Service")
                             },
                             KeySource = ProfileStorage.Models.KeySource.MicrosoftStorage
                         }
@@ -155,7 +155,6 @@
             {
                 Console.WriteLine(String.Format("Could not enable blob encryption for storage account {0}. Exception: {1}", storageAccount2Name, ex.Message));
             }
-            */
             // List storage accounts.
             var storageAccountResults = new List<ProfileStorage.Models.StorageAccount>();
             try
