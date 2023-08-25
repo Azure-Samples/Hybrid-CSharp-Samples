@@ -534,11 +534,11 @@
             var servicePrincipalId = secretServicePrincipalSettings.GetValue("clientId").ToString();
             var servicePrincipalSecret = secretServicePrincipalSettings.GetValue("certPass").ToString();
             var subscriptionId = secretServicePrincipalSettings.GetValue("subscriptionId").ToString();
-            var resourceManagerUrl = secretServicePrincipalSettings.GetValue("resourceManagerUrl").ToString();
+            var resourceManagerEndpointUrl = secretServicePrincipalSettings.GetValue("resourceManagerEndpointUrl").ToString();
             var location = secretServicePrincipalSettings.GetValue("location").ToString();
             var certificatePath = secretServicePrincipalSettings.GetValue("certPath").ToString();
 
-            runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerUrl, certificatePath);
+            runSample(tenantId, subscriptionId, servicePrincipalId, servicePrincipalSecret, location, resourceManagerEndpointUrl, certificatePath);
         }
 
         private static ProfileStorage.StorageManagementClient GetStorageClient(Uri baseUri, ServiceClientCredentials credential, string subscriptionId)
