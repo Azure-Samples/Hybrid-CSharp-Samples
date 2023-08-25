@@ -80,7 +80,8 @@
 
                 foreach (var key in storageAccountKeysResults)
                 {
-                    Console.WriteLine(String.Format("Storage account key name: {0}, key value: {1}", key.KeyName, key.Value));
+                    // Call "key.Value" for the key's value
+                    Console.WriteLine(String.Format("Storage account key name: {0}", key.KeyName));
                 }
 
                 Console.WriteLine("Regenerating first storage account access key");
@@ -95,7 +96,8 @@
                 var storageAccountRegenerateResults = storageAccountRegenerateTask.Result?.Body?.Keys;
                 foreach (var key in storageAccountRegenerateResults)
                 {
-                    Console.WriteLine(String.Format("Storage account key name: {0}, key value: {1}", key.KeyName, key.Value));
+                    // Call "key.Value" for the key's value
+                    Console.WriteLine(String.Format("Storage account key name: {0}", key.KeyName));
                 }
             }
             catch (Exception ex)
