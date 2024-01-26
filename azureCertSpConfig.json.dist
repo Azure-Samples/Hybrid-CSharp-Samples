@@ -6,5 +6,6 @@
     "subscriptionId": "",
     "tenantId": "",
     "resourceManagerEndpointUrl": "",
-    "location": ""
+    "location": "",
+    "disableInstanceDiscovery": "false"
 }

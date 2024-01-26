@@ -36,7 +36,7 @@ namespace StorageAccount
             armClientOptions.SetApiVersionsFromProfile(AzureStackProfile.Profile20200901Hybrid);
             var armClient = new ArmClient(credential, subscriptionId, armClientOptions);
             SubscriptionResource subscription = armClient.GetDefaultSubscription();
-            var resourceGroupName = "azure-sample-csharp-resourcegroup";
+            var resourceGroupName = "azure-sample-csharp-storage";
             ResourceGroupData resourceGroupData = new ResourceGroupData(location);
             ResourceGroupCollection resourceGroups = subscription.GetResourceGroups();
             ResourceGroupResource resourceGroup;
